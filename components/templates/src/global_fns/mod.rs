@@ -2,11 +2,13 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
 
-use tera::{from_value, to_value, Function as TeraFn, Result, Value};
+use tera::{from_value, to_value, Error, Function as TeraFn, Result, Value};
 
 use config::Config;
 use library::{Library, Taxonomy};
 use utils::site::resolve_internal_link;
+use image;
+use image::GenericImageView;
 
 use imageproc;
 
@@ -139,6 +141,64 @@ impl TeraFn for ResizeImage {
         to_value(url).map_err(|err| err.into())
     }
 }
+
+#[derive(Debug)]
+pub struct GetImageWidth {
+    content_path: PathBuf
+}
+
+impl GetImageWidth {
+    pub fn new(content_path: PathBuf) -> Self {
+        Self { content_path }
+    }
+}
+
+impl TeraFn for GetImageWidth {
+    fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
+        let path = required_arg!(
+            String,
+            args.get("path"),
+            "`get_image_width` requires a `path` argument with a string value"
+        );
+        let src_path = self.content_path.join(&path);
+        if !src_path.exists(){
+            return Err(format!("`get_image_width`: Cannot find path: {}", path).into());
+        }
+        let img = image::open(&src_path)
+            .map_err(|e| Error::chain(format!("Failed to process image: {}", path), e))?;
+        Ok(Value::Number(tera::Number::from(img.width())))
+    }
+}
+
+
+#[derive(Debug)]
+pub struct GetImageHeight {
+    content_path: PathBuf
+}
+
+impl GetImageHeight {
+    pub fn new(content_path: PathBuf) -> Self {
+        Self { content_path }
+    }
+}
+
+impl TeraFn for GetImageHeight {
+    fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
+        let path = required_arg!(
+            String,
+            args.get("path"),
+            "`get_image_height` requires a `path` argument with a string value"
+        );
+        let src_path = self.content_path.join(&path);
+        if !src_path.exists(){
+            return Err(format!("`get_image_height`: Cannot find path: {}", path).into());
+        }
+        let img = image::open(&src_path)
+            .map_err(|e| Error::chain(format!("Failed to process image: {}", path), e))?;
+        Ok(Value::Number(tera::Number::from(img.height())))
+    }
+}
+
 
 #[derive(Debug)]
 pub struct GetTaxonomyUrl {

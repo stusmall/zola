@@ -349,6 +349,14 @@ impl Site {
             "resize_image",
             global_fns::ResizeImage::new(self.imageproc.clone()),
         );
+        self.tera.register_function(
+            "get_image_width",
+            global_fns::GetImageWidth::new(self.content_path.clone()),
+        );
+        self.tera.register_function(
+            "get_image_height",
+            global_fns::GetImageHeight::new(self.content_path.clone()),
+        );
         self.tera.register_function("load_data", global_fns::LoadData::new(self.base_path.clone()));
         self.tera.register_function("trans", global_fns::Trans::new(self.config.clone()));
         self.tera.register_function(
